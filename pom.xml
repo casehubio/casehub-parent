@@ -63,6 +63,54 @@
       </dependency>
 
       <!-- ================================================================ -->
+      <!-- quarkus-work                                                     -->
+      <!-- ================================================================ -->
+      <dependency>
+        <groupId>io.quarkiverse.work</groupId>
+        <artifactId>quarkus-work-api</artifactId>
+        <version>${casehub.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.work</groupId>
+        <artifactId>quarkus-work-core</artifactId>
+        <version>${casehub.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.work</groupId>
+        <artifactId>quarkus-work</artifactId>
+        <version>${casehub.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.work</groupId>
+        <artifactId>quarkus-work-deployment</artifactId>
+        <version>${casehub.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.work</groupId>
+        <artifactId>quarkus-work-ledger</artifactId>
+        <version>${casehub.version}</version>
+      </dependency>
+
+      <!-- ================================================================ -->
+      <!-- quarkus-qhorus                                                   -->
+      <!-- ================================================================ -->
+      <dependency>
+        <groupId>io.quarkiverse.qhorus</groupId>
+        <artifactId>quarkus-qhorus</artifactId>
+        <version>${casehub.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.qhorus</groupId>
+        <artifactId>quarkus-qhorus-deployment</artifactId>
+        <version>${casehub.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.qhorus</groupId>
+        <artifactId>quarkus-qhorus-testing</artifactId>
+        <version>${casehub.version}</version>
+      </dependency>
+
+      <!-- ================================================================ -->
       <!-- casehub-engine modules                                           -->
       <!-- ================================================================ -->
       <dependency>
