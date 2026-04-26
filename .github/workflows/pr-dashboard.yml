@@ -20,13 +20,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          REPOS=$(gh api "/orgs/$ORG/repos" \
-            --paginate \
-            --jq '[.[] | select(.archived == false) | .name] | sort | .[]' \
-            2>/dev/null)
+          # Explicit ecosystem repo list — avoids demo/scratch repos
+          REPOS="casehub-parent
+casehub-engine
+quarkus-ledger
+quarkus-work
+quarkus-qhorus
+claudony"
 
           if [ -z "$REPOS" ]; then
-            echo "::error::Could not list repos for org $ORG."
+            echo "::error::REPOS list is empty."
             exit 1
           fi
 
@@ -61,8 +64,9 @@ jobs:
               TOTAL_PRS=$((TOTAL_PRS + 1))
 
               # Aggregate check-runs for the PR head commit
+              # Sanitize control characters before jq to handle emoji in check names
               CHECKS=$(gh api "/repos/$ORG/$repo/commits/$pr_sha/check-runs?per_page=100" \
-                --jq '.check_runs' 2>/dev/null || echo "[]")
+                2>/dev/null | tr -d '\000-\010\013-\037\177' | jq -r '.check_runs' 2>/dev/null || echo "[]")
 
               check_count=$(echo "$CHECKS" | jq 'length')
 

@@ -44,10 +44,12 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Clone repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p .build-times
           for repo in quarkus-langchain4j quarkus-ledger quarkus-work quarkus-qhorus casehub-engine claudony; do
-            git clone --quiet "https://github.com/casehubio/$repo.git"
+            git clone --quiet "https://x-access-token:${GITHUB_TOKEN}@github.com/casehubio/$repo.git"
           done
 
       # continue-on-error: true on each build step ensures:
