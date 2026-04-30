@@ -1,0 +1,120 @@
+name: Clear SNAPSHOT Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — list what would be deleted without deleting"
+        type: boolean
+        default: true
+      version:
+        description: "Version to target (e.g. 0.2-SNAPSHOT). Leave blank for all SNAPSHOTs."
+        type: string
+        default: ""
+
+jobs:
+  clear:
+    name: Clear SNAPSHOT Packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: List and delete SNAPSHOT packages
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          ORG: casehubio
+          DRY_RUN: ${{ inputs.dry_run }}
+          VERSION_FILTER: ${{ inputs.version }}
+        run: |
+          total_versions=0
+          total_deleted=0
+          total_failed=0
+
+          # Fetch all Maven packages in the org (paginated)
+          echo "Fetching Maven packages for org: $ORG"
+          packages=$(gh api "/orgs/$ORG/packages?package_type=maven&per_page=100" \
+            --paginate --jq '.[] | {name: .name, version_count: .version_count}' \
+            2>/dev/null)
+
+          if [ -z "$packages" ]; then
+            echo "No Maven packages found in $ORG."
+            exit 0
+          fi
+
+          package_count=$(echo "$packages" | jq -s 'length')
+          echo "Found $package_count package(s). Scanning for SNAPSHOT versions..."
+          echo ""
+
+          while IFS= read -r pkg; do
+            pkg_name=$(echo "$pkg" | jq -r '.name')
+
+            # Fetch versions for this package
+            versions=$(gh api "/orgs/$ORG/packages/maven/$pkg_name/versions?per_page=100" \
+              --paginate 2>/dev/null \
+              | jq -c '[.[] | select(.name | test("SNAPSHOT"; ""))]')
+
+            # Apply optional version filter
+            if [ -n "$VERSION_FILTER" ]; then
+              versions=$(echo "$versions" | jq -c \
+                "[.[] | select(.name == \"$VERSION_FILTER\")]")
+            fi
+
+            count=$(echo "$versions" | jq 'length')
+            [ "$count" -eq 0 ] && continue
+
+            echo "── $pkg_name  ($count SNAPSHOT version(s))"
+            echo "$versions" | jq -r '.[] | "   • \(.name)  id=\(.id)  updated=\(.updated_at)"'
+            total_versions=$((total_versions + count))
+
+            if [ "$DRY_RUN" == "true" ]; then
+              echo "   [dry-run] would delete $count version(s)"
+              continue
+            fi
+
+            # Delete each SNAPSHOT version
+            deleted=0
+            failed=0
+            while IFS= read -r version_id; do
+              if gh api -X DELETE \
+                "/orgs/$ORG/packages/maven/$pkg_name/versions/$version_id" \
+                --silent 2>/dev/null; then
+                deleted=$((deleted + 1))
+              else
+                echo "   [warn] failed to delete version id=$version_id"
+                failed=$((failed + 1))
+              fi
+            done < <(echo "$versions" | jq -r '.[].id')
+
+            # Post-state: verify
+            remaining=$(gh api "/orgs/$ORG/packages/maven/$pkg_name/versions?per_page=100" \
+              --paginate 2>/dev/null \
+              | jq -c '[.[] | select(.name | test("SNAPSHOT"; ""))]')
+
+            if [ -n "$VERSION_FILTER" ]; then
+              remaining=$(echo "$remaining" | jq -c \
+                "[.[] | select(.name == \"$VERSION_FILTER\")]")
+            fi
+
+            remaining_count=$(echo "$remaining" | jq 'length')
+
+            if [ "$remaining_count" -eq 0 ]; then
+              echo "   [post] ✓ deleted $deleted version(s)"
+              total_deleted=$((total_deleted + deleted))
+            else
+              echo "   [post] ✗ $remaining_count version(s) still present"
+              total_failed=$((total_failed + remaining_count))
+            fi
+
+            echo ""
+          done < <(echo "$packages" | jq -c '.')
+
+          echo ""
+          if [ "$DRY_RUN" == "true" ]; then
+            echo "── Dry run complete: $total_versions SNAPSHOT version(s) across $package_count package(s) would be deleted."
+            echo "   Uncheck 'Dry run' to delete."
+          else
+            echo "── Summary: $total_deleted deleted, $total_failed failed"
+            if [ "$total_failed" -gt 0 ]; then
+              echo "FAIL: $total_failed version(s) were not deleted"
+              exit 1
+            fi
+          fi
