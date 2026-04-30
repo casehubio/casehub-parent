@@ -1,0 +1,88 @@
+name: Clear Maven Cache
+
+on:
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "All repositories"
+        type: boolean
+        default: false
+      engine:
+        description: "casehubio/engine"
+        type: boolean
+        default: false
+      ledger:
+        description: "casehubio/ledger"
+        type: boolean
+        default: false
+      work:
+        description: "casehubio/work"
+        type: boolean
+        default: false
+      qhorus:
+        description: "casehubio/qhorus"
+        type: boolean
+        default: false
+      connectors:
+        description: "casehubio/connectors"
+        type: boolean
+        default: false
+      assisteddev:
+        description: "casehubio/assisteddev"
+        type: boolean
+        default: false
+      claudony:
+        description: "casehubio/claudony"
+        type: boolean
+        default: false
+      parent:
+        description: "casehubio/parent"
+        type: boolean
+        default: false
+
+jobs:
+  clear:
+    name: Clear Maven Caches
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+
+    steps:
+      - name: Clear selected caches
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          clear_maven_cache() {
+            local repo="$1"
+            echo "── $repo"
+            local ids
+            ids=$(gh api "repos/$repo/actions/caches?per_page=100" \
+              --jq '.actions_caches[] | select(.key | test("maven|m2"; "i")) | .id' \
+              2>/dev/null || true)
+            if [ -z "$ids" ]; then
+              echo "   no Maven caches found"
+              return
+            fi
+            local count=0
+            while IFS= read -r id; do
+              gh api -X DELETE "repos/$repo/actions/caches/$id" --silent || true
+              count=$((count + 1))
+            done <<< "$ids"
+            echo "   deleted $count cache(s)"
+          }
+
+          should_clear() {
+            local flag="$1"
+            [ "${{ inputs.all }}" == "true" ] || [ "$flag" == "true" ]
+          }
+
+          should_clear "${{ inputs.engine }}"     && clear_maven_cache "casehubio/engine"
+          should_clear "${{ inputs.ledger }}"     && clear_maven_cache "casehubio/ledger"
+          should_clear "${{ inputs.work }}"       && clear_maven_cache "casehubio/work"
+          should_clear "${{ inputs.qhorus }}"     && clear_maven_cache "casehubio/qhorus"
+          should_clear "${{ inputs.connectors }}" && clear_maven_cache "casehubio/connectors"
+          should_clear "${{ inputs.assisteddev }}" && clear_maven_cache "casehubio/assisteddev"
+          should_clear "${{ inputs.claudony }}"   && clear_maven_cache "casehubio/claudony"
+          should_clear "${{ inputs.parent }}"     && clear_maven_cache "casehubio/parent"
+
+          echo "Done."
