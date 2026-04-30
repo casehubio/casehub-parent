@@ -16,12 +16,23 @@ jobs:
         run: |
           failed=0
 
+          # 0. Is the secret set at all?
+          echo "── Secret presence"
+          if [ -z "$GH_TOKEN" ]; then
+            echo "   ✗ GH_PAT secret is empty or not set in this org"
+            exit 1
+          fi
+          echo "   ✓ GH_PAT is set (length: ${#GH_TOKEN} chars)"
+
           # 1. Basic auth — is the token valid at all?
+          echo ""
           echo "── Token identity"
+          auth_err=$(gh api /user --jq '.login' 2>&1 >/dev/null || true)
           if user=$(gh api /user --jq '.login' 2>/dev/null); then
             echo "   ✓ authenticated as: $user"
           else
             echo "   ✗ token is invalid or expired — cannot authenticate"
+            echo "   gh error: $auth_err"
             exit 1
           fi
 
