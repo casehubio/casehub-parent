@@ -53,9 +53,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p .build-times
-          for repo in quarkus-langchain4j casehub-connectors claudony; do
-            git clone --quiet "https://x-access-token:${GITHUB_TOKEN}@github.com/casehubio/$repo.git"
-          done
+          git clone --quiet "https://x-access-token:${GITHUB_TOKEN}@github.com/casehubio/quarkus-langchain4j.git" quarkus-langchain4j
+          git clone --quiet "https://x-access-token:${GITHUB_TOKEN}@github.com/casehubio/connectors.git" casehub/connectors
+          git clone --quiet "https://x-access-token:${GITHUB_TOKEN}@github.com/casehubio/claudony.git" casehub/claudony
           # ledger, engine, work, and qhorus live under casehub/ to match local layout and aggregator.xml
           mkdir -p casehub
           git clone --quiet "https://x-access-token:${GITHUB_TOKEN}@github.com/casehubio/ledger.git" casehub/ledger
@@ -113,7 +113,7 @@ jobs:
           [ "$SKIP_TESTS" = "true" ] && FLAGS="-DskipTests"
           [ "$SKIP_ITS" = "true" ] && FLAGS="$FLAGS -DskipITs"
           START=$SECONDS
-          cd casehub-connectors && mvn install --batch-mode $FLAGS $MAVEN_EXTRA
+          cd casehub/connectors && mvn install --batch-mode $FLAGS $MAVEN_EXTRA
           echo $((SECONDS - START)) > ../.build-times/casehub-connectors
 
       - name: "Build: casehub-work"
@@ -177,7 +177,7 @@ jobs:
           [ "$SKIP_TESTS" = "true" ] && FLAGS="-DskipTests"
           [ "$SKIP_ITS" = "true" ] && FLAGS="$FLAGS -DskipITs"
           START=$SECONDS
-          cd claudony && mvn install --batch-mode $FLAGS $MAVEN_EXTRA
+          cd casehub/claudony && mvn install --batch-mode $FLAGS $MAVEN_EXTRA
           echo $((SECONDS - START)) > ../.build-times/claudony
 
       - name: Build summary
@@ -202,7 +202,7 @@ jobs:
             TEST_MODE="full test suite"
           fi
 
-          MODULES=(quarkus-langchain4j casehub-ledger casehub-connectors casehub-work casehub-qhorus casehub-engine claudony)
+          MODULES=(quarkus-langchain4j casehub-ledger casehub-connectors casehub-work casehub-qhorus casehub-engine casehub-claudony)
           declare -A OUTCOMES=(
             [quarkus-langchain4j]="$OUTCOME_LANGCHAIN4J"
             [casehub-ledger]="$OUTCOME_LEDGER"
@@ -210,7 +210,7 @@ jobs:
             [casehub-work]="$OUTCOME_WORK"
             [casehub-qhorus]="$OUTCOME_QHORUS"
             [casehub-engine]="$OUTCOME_ENGINE"
-            [claudony]="$OUTCOME_CLAUDONY"
+            [casehub-claudony]="$OUTCOME_CLAUDONY"
           )
 
           {
