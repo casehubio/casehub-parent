@@ -1,67 +1,45 @@
-# HANDOFF — CaseHub Platform Architecture and Gastown Analysis
+# HANDOFF — CaseHub CI/CD Chain and Rename Cleanup
+2026-05-01
 
-**Session:** 2026-04-28 — extremely long session, high output
+## What was done this session
 
----
+**Major rename completed:** All casehub repos moved to `~/claude/casehub/` with short GitHub repo names (`casehubio/ledger`, `casehubio/work`, etc.). Maven coordinates, Java packages, config prefixes all updated. Stale references cleaned across all docs and CLAUDE.md files.
 
-## What was built
+**CI/CD chain wired:** All 7 repos now have consistent publish workflows:
+- Build+test always (including PRs)
+- Publish only on non-PR events (`github.event_name != 'pull_request'`)
+- `repository_dispatch` chain: parent→ledger,connectors→work,qhorus→engine→claudony
 
-### Platform documentation (all pushed)
-- `docs/PLATFORM.md` — capability ownership, boundary rules, 6-step Platform Coherence Protocol (Steps 1–6 including consolidation propagation)
-- `docs/repos/*.md` — deep-dive docs for all 7 ecosystem repos
-- `docs/gastown-casehub-analysis.md` + `docs/gastown-casehub-analysis-v2.md` — full Gastown vs CaseHub analysis; v2 separates foundation/application layers
+**GitHub Packages unblocked:** 69 stale 0.2-SNAPSHOT packages cleared via `clear-snapshot-packages.yml`. Root cause was 3 layered bugs — classic PAT required (not fine-grained), set-e command substitution, last-version 400 error.
 
-### casehub-assisteddev repo created
-- Live at `casehubio/assisteddev` — first application layer on CaseHub foundation
-- Scaffolded with README + CLAUDE.md, added to CI dashboards
-- App-level trust epics and issues #1–#7 created
+## Current CI state
 
-### Platform foundation roadmap
-- `casehub-parent#7` — master epic tracking P0→P3 work
-- `casehub-parent#4` — 32-finding platform coherence audit (8 individual issues created)
-- `casehub-parent#3` — linked PR chain automation (design documented, not built)
-
-### casehub-ledger — full epic structure
-- `ledger#48` — parent epic with 6 consolidation checks and dependency graph
-- `ledger#49–#52` — child epics (Groups A, B, C, D)
-- `ledger#53–#68` — 16 individual issues with full implementation specs
-- `ledger#67–#68` — prerequisite refactors (enrichment pipeline, ActorTrustScore discriminator)
-
-### casehub-qhorus normative docs (restructured and pushed)
-- `docs/normative-framework.md` — entry point / body of works
-- `docs/normative-layer.md` — theory + Tower of Babel argument + two worked examples + engine#189 reference + objection responses
-- `docs/normative-objections.md` — 10 objections with drafted counter-arguments
-- `docs/multi-agent-framework-comparison.md` — Gastown column added, Part 0 normative table
-
-### Three implementations completed (parallel agents, 2026-04-28)
-- `qhorus#123` ✅ — LedgerAttestation on terminal commitment outcomes (899 tests passing)
-- `engine#185` ✅ — PropagationContext.traceId aligned with OTel span
-- `ledger#47` ✅ — ActorTypeResolver utility (partial — consumers need updating via #53)
-
----
-
-## Active work
-
-**casehub-ledger** — briefed and started on epic #48. Starting order: #67 → #68 → #55/#54/#53 in parallel. Has the full briefing.
-
----
+| Repo | Status | Notes |
+|------|--------|-------|
+| parent | ✅ | |
+| ledger | ✅ | |
+| connectors | ✅ | |
+| engine | ✅ | |
+| claudony | ✅ | |
+| work | ❌ | Can't resolve `io.casehub:casehub-parent:pom:0.2-SNAPSHOT` |
+| qhorus | ❌ | Same — missing casehub-parent in GitHub Packages |
 
 ## Immediate next action
 
-**Presentation for CaseHub** — user needs to prepare a presentation. Not yet started. Context for this is entirely in the Gastown analysis v2 and normative docs. Key themes:
-- Foundation vs application layer architecture
-- ACM + blackboard + hybrid choreography/orchestration
-- Normative layer: accountability vs tracking, Tower of Babel argument, engine#189 hypothesis
-- Trust model (Bayesian Beta + EigenTrust vs Gastown stamps)
-- Compliance (GDPR, EU AI Act)
+Trigger parent publish (gets cleared by snapshot cleaner), then re-run work and qhorus:
+
+```bash
+gh workflow run publish.yml --repo casehubio/parent
+# Wait ~3 min, then:
+gh workflow run publish.yml --repo casehubio/work
+gh workflow run publish.yml --repo casehubio/qhorus
+```
 
 ## References
 
-| Document | Path |
-|----------|------|
+| Item | Location |
+|------|----------|
 | Platform architecture | `docs/PLATFORM.md` |
-| Gastown analysis v2 | `docs/gastown-casehub-analysis-v2.md` |
-| Foundation roadmap | https://github.com/casehubio/parent/issues/7 |
-| Ledger parent epic | https://github.com/casehubio/ledger/issues/48 |
-| Normative body of works | `~/claude/casehub/qhorus/docs/normative-framework.md` |
-| Platform coherence audit | https://github.com/casehubio/parent/issues/4 |
+| Foundation roadmap epic | https://github.com/casehubio/parent/issues/7 |
+| Ledger trust epic | https://github.com/casehubio/ledger/issues/48 |
+| Clear-snapshot workflow | `.github/workflows/clear-snapshot-packages.yml` |
